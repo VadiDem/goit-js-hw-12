@@ -18,7 +18,7 @@ let totalHits;
 const showLoader = () => {
   const loader = document.createElement('span');
   loader.classList.add('loader');
-  container.append(loader);
+  container.appendChild(loader);
 };
 
 const hideLoader = () => {
@@ -54,7 +54,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const photos = await searchImages(query, page);
+    const photos = await searchImages(query, page); // Виправлено: Передаємо значення query
     renderImages(photos);
     form.reset();
     hideLoader();
@@ -80,7 +80,7 @@ loadBtn.addEventListener("click", async () => {
   showLoader();
   try {
     page += 1;
-    const photos = await searchImages(query, page);
+    const photos = await searchImages(query, page); // Виправлено: Передаємо значення query
     renderImages(photos);
     hideLoader();
 
