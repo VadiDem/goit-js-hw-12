@@ -4,12 +4,16 @@ import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import axios from 'axios';
 
-const API_KEY = 'your_api_key_here'; 
 const form = document.querySelector(".form");
 const gallery = document.querySelector(".gallery");
 const container = document.querySelector(".container");
 const searchInput = document.querySelector("input");
 const loadBtn = document.querySelector('.btn-load');
+
+let page = 1;
+let per_page = 40;
+let query = "";
+let totalHits;
 
 const showLoader = () => {
   const loader = document.createElement('span');
@@ -32,30 +36,25 @@ const hideButton = () => {
   loadBtn.style.display = 'none';
 };
 
-let page = 1;
-let per_page = 40;
-let query = "";
-let totalHits;
-
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  page = 1;
   showLoader();
   gallery.innerHTML = "";
   query = searchInput.value.trim();
-  page = 1; 
-  try {
-    if (query === '') {
-      hideButton();
-      iziToast.error({
-        message: 'Please enter a search term.',
-        position: 'center',
-        transitionIn: "fadeInLeft",
-      });
-      hideLoader();
-      return;
-    }
+  if (query === '') {
+    hideButton();
+    iziToast.error({
+      message: 'Please enter a search term.',
+      position: 'center',
+      transitionIn: "fadeInLeft",
+    });
+    hideLoader();
+    return;
+  }
 
-    const photos = await searchImages();
+  try {
+    const photos = await searchImages(query, page);
     renderImages(photos);
     form.reset();
     hideLoader();
@@ -81,17 +80,16 @@ loadBtn.addEventListener("click", async () => {
   showLoader();
   try {
     page += 1;
-    const photos = await searchImages();
+    const photos = await searchImages(query, page);
     renderImages(photos);
     hideLoader();
 
-    const { height: cardHeight } = document
-      .querySelector('.gallery')
-      .firstElementChild.getBoundingClientRect();
+    const { height: cardHeight } = document.querySelector('.gallery').firstElementChild.getBoundingClientRect();
     window.scrollBy({
       top: cardHeight * 2,
       behavior: 'smooth',
     });
+
     if (gallery.children.length >= totalHits || photos.hits.length < per_page) {
       iziToast.warning({
         message: 'We are sorry, but you have reached the end of search results.',
@@ -102,22 +100,13 @@ loadBtn.addEventListener("click", async () => {
     }
   } catch (error) {
     handleError(error);
-    hideLoader();
   }
 });
 
-async function searchImages() {
+async function searchImages(query, page) {
   try {
-    const params = new URLSearchParams({
-      key: API_KEY,
-      q: query,
-      image_type: "photo",
-      orientation: "horizontal",
-      safesearch: true,
-      page: page,
-      per_page: per_page
-    })
-    const response = await axios.get(`https://pixabay.com/api/?${params}`);
+    const apiKey = 'your_api_key_here';
+    const response = await axios.get(`https://pixabay.com/api/?key=${apiKey}&q=${query}&image_type=photo&orientation=horizontal&safesearch=true&page=${page}&per_page=${per_page}`);
     totalHits = response.data.totalHits;
     return response.data;
   } catch (error) {
@@ -137,17 +126,26 @@ const lightbox = new SimpleLightbox('.gallery a', {
 });
 
 function renderImages(data) {
-  const markup = data.hits
-    .map(data => {
-      return `
-        <li class="gallery-item"><a href="${data.largeImageURL}">
-          <img class="gallery-image" src="${data.webformatURL}" alt="${data.tags}"></a>
-          <p><b>Likes: </b>${data.likes}</p>
-          <p><b>Views: </b>${data.views}</p>
-          <p><b>Comments: </b>${data.comments}</p>
-          <p><b>Downloads: </b>${data.downloads}</p>
-        </li>`;
-    }).join('');
+  const markup = data.hits.map(data => {
+    return `
+      <li class="gallery-item">
+        <a href="${data.largeImageURL}">
+          <img class="gallery-image" src="${data.webformatURL}" alt="${data.tags}">
+        </a>
+        <p><b>Likes: </b>${data.likes}</p>
+        <p><b>Views: </b>${data.views}</p>
+        <p><b>Comments: </b>${data.comments}</p>
+        <p><b>Downloads: </b>${data.downloads}</p>
+      </li>`;
+  }).join('');
+
   gallery.insertAdjacentHTML("beforeend", markup);
   lightbox.refresh();
+}
+
+function handleError(error) {
+  iziToast.error({
+    title: 'Error',
+    message: error.message,
+  });
 }
