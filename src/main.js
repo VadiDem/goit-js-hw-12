@@ -149,4 +149,5 @@ function renderImages(data) {
         </li>`;
     }).join('');
   gallery.insertAdjacentHTML("beforeend", markup);
-  lightbox.refresh()};
+  lightbox.refresh();
+}
