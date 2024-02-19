@@ -2,9 +2,9 @@ import iziToast from "izitoast";
 import "izitoast/dist/css/iziToast.min.css";
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
-import axios from 'axios'
+import axios from 'axios';
 
-
+const API_KEY = 'your_api_key_here'; 
 const form = document.querySelector(".form");
 const gallery = document.querySelector(".gallery");
 const container = document.querySelector(".container");
@@ -32,52 +32,49 @@ const hideButton = () => {
   loadBtn.style.display = 'none';
 };
 
-
 let page = 1;
 let per_page = 40;
 let query = "";
 let totalHits;
 
-
 form.addEventListener("submit", async (event) => {
-    page = 1;
-    showLoader();
-    gallery.innerHTML = " ";
-    event.preventDefault();
-    query = searchInput.value.trim();
-    if (query === '') {
-        hideButton();
-        iziToast.error({
-            message: 'Please enter a search term.',
-            position: 'center',
-            transitionIn: "fadeInLeft",
-        });
-        hideLoader();
-        return;
-    } 
+  event.preventDefault();
+  showLoader();
+  gallery.innerHTML = "";
+  query = searchInput.value.trim();
+  page = 1; 
   try {
-        const photos = await searchImages();
-        renderImages(photos);
-        form.reset();
-        hideLoader();
-        showButton();
-
-        if (photos.hits.length < per_page) {
-            hideButton();
-        }
-        if (photos.hits.length === 0) {
-            hideButton();
-            iziToast.error({
-                message: 'Sorry, there are no images matching <br>your search query. Please try again!</br>',
-                position: 'center',
-                transitionIn: "fadeInLeft",
-            });
-        }
-    } catch (error) {
-        iziToast.error({
-        title: 'Error',
-        });
+    if (query === '') {
+      hideButton();
+      iziToast.error({
+        message: 'Please enter a search term.',
+        position: 'center',
+        transitionIn: "fadeInLeft",
+      });
+      hideLoader();
+      return;
     }
+
+    const photos = await searchImages();
+    renderImages(photos);
+    form.reset();
+    hideLoader();
+    showButton();
+
+    if (photos.hits.length < per_page) {
+      hideButton();
+    }
+    if (photos.hits.length === 0) {
+      hideButton();
+      iziToast.error({
+        message: 'Sorry, there are no images matching your search query. Please try again!',
+        position: 'center',
+        transitionIn: "fadeInLeft",
+      });
+    }
+  } catch (error) {
+    handleError(error);
+  }
 });
 
 loadBtn.addEventListener("click", async () => {
@@ -97,26 +94,22 @@ loadBtn.addEventListener("click", async () => {
     });
     if (gallery.children.length >= totalHits || photos.hits.length < per_page) {
       iziToast.warning({
-        message:
-          'We are sorry, but you have reached the end of search results.',
+        message: 'We are sorry, but you have reached the end of search results.',
         position: 'bottomCenter',
         transitionIn: "fadeInDown",
       });
       hideButton();
     }
   } catch (error) {
-    iziToast.error({
-    title: 'Error',
-});
+    handleError(error);
     hideLoader();
   }
 });
 
 async function searchImages() {
   try {
-    const apiKey = '41764579-b97d65b31c0abd4efd9d4830e';
     const params = new URLSearchParams({
-      key: apiKey,
+      key: API_KEY,
       q: query,
       image_type: "photo",
       orientation: "horizontal",
@@ -126,40 +119,34 @@ async function searchImages() {
     })
     const response = await axios.get(`https://pixabay.com/api/?${params}`);
     totalHits = response.data.totalHits;
-
     return response.data;
   } catch (error) {
     console.log(error);
-    throw WebTransportError;
+    throw new Error('Failed to fetch images');
   }
-};
+}
 
-    const lightbox = new SimpleLightbox('.gallery a', {
-        captions: true,
-        captionType: 'attr',
-        captionsData: 'alt',
-        captionPosition: 'bottom',
-        fadeSpeed: 150,
-        captionSelector: "img",
-        captionDelay: 250,
-    });
+const lightbox = new SimpleLightbox('.gallery a', {
+  captions: true,
+  captionType: 'attr',
+  captionsData: 'alt',
+  captionPosition: 'bottom',
+  fadeSpeed: 150,
+  captionSelector: "img",
+  captionDelay: 250,
+});
 
 function renderImages(data) {
   const markup = data.hits
-          .map(data => {
-            return `
-            <li class="gallery-item"><a href="${data.largeImageURL}">
+    .map(data => {
+      return `
+        <li class="gallery-item"><a href="${data.largeImageURL}">
           <img class="gallery-image" src="${data.webformatURL}" alt="${data.tags}"></a>
           <p><b>Likes: </b>${data.likes}</p>
           <p><b>Views: </b>${data.views}</p>
           <p><b>Comments: </b>${data.comments}</p>
           <p><b>Downloads: </b>${data.downloads}</p>
-          </li>`;
-          }).join('');
-        
-        gallery.insertAdjacentHTML("beforeend", markup);
-
-
-        lightbox.on('show.simplelightbox').refresh();
-  hideLoader();
-};
+        </li>`;
+    }).join('');
+  gallery.insertAdjacentHTML("beforeend", markup);
+  lightbox.refresh();
