@@ -129,8 +129,10 @@ async function searchImages() {
 
     return response.data;
   } catch (error) {
-    console.log(error);
-    throw WebTransportError;
+    iziToast.error({
+    title: 'Error',
+});
+    throw new Error('Error');
   }
 };
 
@@ -160,6 +162,6 @@ function renderImages(data) {
         gallery.insertAdjacentHTML("beforeend", markup);
 
 
-        lightbox.on('show.simplelightbox').refresh();
+        lightbox.refresh();
   hideLoader();
 };
